@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>California Land Deal Radar</title>
+<style>
+  :root{
+    --bg:#0f1411; --panel:#161d18; --panel2:#1b241d; --line:#2a352c;
+    --ink:#e8efe9; --mute:#8ba291; --gold:#c9a227; --green:#3f9d6c; --green2:#56c08d;
+    --hot:#d98324; --pending:#7b5cff; --chip:#22302a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.45}
+  header{padding:20px 26px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#13201a,#0f1411);display:flex;align-items:baseline;
+    gap:16px;flex-wrap:wrap}
+  header h1{margin:0;font-size:22px;letter-spacing:.4px;font-weight:700}
+  header h1 .dot{color:var(--gold)}
+  header .sub{color:var(--mute);font-size:12.5px}
+  .wrap{padding:18px 26px 60px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;min-width:120px;flex:1}
+  .card .n{font-size:26px;font-weight:700}
+  .card .l{color:var(--mute);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+  .card.gold .n{color:var(--gold)} .card.green .n{color:var(--green2)} .card.pending .n{color:#a994ff}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  input,select{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    padding:8px 11px;border-radius:9px;font-size:13px;outline:none}
+  input:focus,select:focus{border-color:var(--green)}
+  input[type=search]{min-width:240px}
+  label.toggle{display:flex;gap:6px;align-items:center;color:var(--mute);font-size:13px;cursor:pointer}
+  .count{color:var(--mute);font-size:12.5px;margin-left:auto}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden}
+  thead th{position:sticky;top:0;background:#12191500;backdrop-filter:blur(6px);
+    background:#141d17;text-align:left;padding:10px 12px;font-size:11.5px;letter-spacing:.5px;
+    text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);cursor:pointer;
+    white-space:nowrap;user-select:none}
+  thead th:hover{color:var(--ink)}
+  thead th .arrow{opacity:.5;font-size:10px}
+  tbody td{padding:10px 12px;border-bottom:1px solid #20292333;vertical-align:top}
+  tbody tr:hover{background:#1a241d}
+  .price{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  .score{font-weight:700;text-align:center;border-radius:7px;padding:2px 7px;display:inline-block;min-width:34px}
+  .s-hi{background:#1f3a2a;color:var(--green2)} .s-md{background:#33301c;color:var(--gold)}
+  .s-lo{background:#2a2320;color:#c98b6a}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;display:inline-block}
+  .b-uc{background:#3a2c1a;color:#e0a35e} .b-auc{background:#3a2c1a;color:#e0a35e}
+  .b-pending{background:#2a2347;color:#b3a0ff} .b-sold{background:#2a2a2a;color:#9aa}
+  .b-auction{background:#15303a;color:#5fc5e0}
+  .prop{font-weight:600;max-width:280px} .prop .meta{color:var(--mute);font-weight:400;font-size:12px}
+  a{color:var(--green2);text-decoration:none} a:hover{text-decoration:underline}
+  .contact .nm{font-weight:600}
+  .contact a{display:block;font-size:12.5px}
+  .nocontact{color:var(--mute);font-size:12px;font-style:italic}
+  .note{margin-top:18px;color:var(--mute);font-size:12.5px;max-width:780px;line-height:1.6}
+  .note b{color:var(--ink)}
+  .pill{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:20px;
+    padding:1px 9px;font-size:11px;color:var(--mute)}
+  tr.is-pending td{box-shadow:inset 3px 0 0 var(--pending)}
+  .agetag{font-size:10.5px;font-weight:600;margin-top:3px;letter-spacing:.3px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin:2px 0 14px;
+    color:var(--mute);font-size:12px}
+  .legend .sw{display:inline-block;width:30px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <h1>Land Deal Radar <span class="dot">●</span></h1>
+  <div class="sub" id="sub"></div>
+</header>
+<div class="wrap">
+  <div class="cards" id="cards"></div>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search property, county, brokerage, agent…"/>
+    <select id="state"><option value="">All states</option></select>
+    <select id="source"><option value="">All sources</option></select>
+    <select id="band">
+      <option value="">All prices</option>
+      <option value="10">$10M+</option>
+      <option value="5">$5M+</option>
+      <option value="2">$2M+</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="hasContact"/> Has broker contact</label>
+    <label class="toggle"><input type="checkbox" id="hasCrm"/> In my CRM</label>
+    <label class="toggle"><input type="checkbox" id="onlyPending"/> Pending only (contingencies removed)</label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#fff"></span>New (first 3 days)</span>
+    <span><span class="sw" style="background:linear-gradient(90deg,#000,#cd1414)"></span>Removed / probable under contract — black at close, reddening each day toward the seller's 45-day 1031 deadline</span>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th data-k="price">Price<span class="arrow"></span></th>
+      <th data-k="status">Status<span class="arrow"></span></th>
+      <th data-k="state">ST<span class="arrow"></span></th>
+      <th data-k="county">County<span class="arrow"></span></th>
+      <th data-k="title">Property<span class="arrow"></span></th>
+      <th data-k="acres">Acres<span class="arrow"></span></th>
+      <th data-k="brokerage">Listing broker (seller side)<span class="arrow"></span></th>
+      <th>Phone / Email</th>
+      <th data-k="crm_name">Your CRM contact<span class="arrow"></span></th>
+      <th data-k="seller_name">Likely seller (owner)<span class="arrow"></span></th>
+      <th data-k="source">Source<span class="arrow"></span></th>
+      <th>Link</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="note">
+    <b>Reading this board:</b> rows are the listing (seller-side) broker — the gatekeeper to call.
+    A <span class="badge b-pending">PENDING</span> badge means contingencies are removed (near-certain to close) and
+    is highlighted with a purple bar; <span class="badge b-uc">UNDER&nbsp;CONTRACT</span> means an offer is accepted but
+    contingencies may still be live. <b>The buyer's-side agent is never published on public listings</b> — that requires
+    an MLS/RESO feed (see docs/FEASIBILITY_AND_SOLUTIONS.md). Broker phone/email are pulled from the listing where the
+    source exposes them; blanks mean the source hid the email behind a contact form.
+    <b>Your CRM contact</b> cross-references the Monday.com All Contacts board: <span class="pill">listing agent</span>
+    = the CRM person IS the listing agent (matched by name — their email/phone also fills the broker column);
+    <span class="pill">@ brokerage</span> = your relationship at that brokerage, a warm door in, but NOT necessarily
+    the agent on this deal.
+    <b>Why most rows say landwatch:</b> LandWatch is the one big source with a public under-contract filter.
+    Land Broker MLS and Hall and Hall hide pending deals, so their inventory sits in the "Active tracked"
+    pool — when one of their listings vanishes, it appears here as <span class="badge b-uc">Disappeared — probable UC</span>
+    with the broker contact already captured. Multi-source deals show all sources (e.g. landwatch+landbrokermls).
+    Click any column header to sort.
+  </div>
+</div>
+
+<script>
+const DATA = [{"score": 60, "price": 70000000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Santa Barbara", "title": "Naples/Santa Barbara Ranch", "acres": 1000.0, "ptype": "ranch", "brokerage": "Kerry Mormann & Associates", "agent_name": "Kerry Mormann", "phone": "(805) 870-9578", "email": "kerrym@bhhscal.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/santa-barbara-county-california-farms-and-ranches-for-sale/pid/425759646", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 51442500, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Kern", "title": "342.95 Acs. Bakersfield Development Land & Almonds", "acres": 342.95, "ptype": "ranch", "brokerage": "Pearson Realty", "agent_name": "Dan Kevorkian", "phone": "(657) 224-7803", "email": "dkevorkian@pearsonrealty.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "brokerage", "crm_name": "Sullivan Groesz", "crm_email": "sgrosz@pearsonrealty.com  - sgrosz@pearsonrealty.com", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/kern-county-california-farms-and-ranches-for-sale/pid/417358569", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 25750000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Ventura", "title": "323+ Acres Strawberry & Vegetable Row Crop Ground, Ventura county CA", "acres": 323.0, "ptype": "row_crop", "brokerage": "Jacobson Realty, Inc.", "agent_name": "Lynn J Osslund", "phone": "(805) 865-9469", "email": "jacobsonrealtyinc@gmail.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/ventura-county-california-farms-and-ranches-for-sale/pid/421355926", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 19794040, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Tulare", "title": "+/-1,413.86 Ac. Pistachios, Allensworth", "acres": 1413.86, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Rick Schuil", "phone": "(661) 490-9818", "email": "rick@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/tulare-county-california-farms-and-ranches-for-sale/pid/421955715", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 16900000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Siskiyou", "title": "AP Ranch", "acres": 14000.0, "ptype": "ranch", "brokerage": "California Outdoor Properties", "agent_name": "Todd Renfrew", "phone": "(530) 732-1869", "email": "todd@caoutdoorproperties.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/siskiyou-county-california-farms-and-ranches-for-sale/pid/423345982", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 11500000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Kings", "title": "+/-115.26 Ac. Walnuts, Lemoore", "acres": 115.26, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Blake Grilione", "phone": "(559) 245-5030", "email": "blake@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "KHALIL KHARMA FAMILY TRUST", "seller_mail": "1901 AVENUE OF THE STARS #200 LOS ANGELES CA 900676015", "seller_llc": false, "seller_conf": "HIGH", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/kings-county-california-farms-and-ranches-for-sale/pid/417444788", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 10100000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Santa Barbara", "title": "Gold Coast Ranch", "acres": 154.0, "ptype": "ranch", "brokerage": "Rincon Corp", "agent_name": "Larry  Lahr", "phone": "(805) 896-4605", "email": "info@rinconcorp.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/santa-barbara-county-california-farms-and-ranches-for-sale/pid/426673677", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 9500000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Ventura", "title": "Income Producing Farmland", "acres": 185.0, "ptype": "ranch", "brokerage": "Jacobson Realty, Inc.", "agent_name": "Lynn J Osslund", "phone": "(805) 439-9436", "email": "jacobsonrealtyinc@gmail.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/ventura-county-california-farms-and-ranches-for-sale/pid/421364485", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 8500000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Ventura", "title": "4 Oaks Ranch", "acres": 2679.0, "ptype": "ranch", "brokerage": "Kerry Mormann & Associates", "agent_name": "Kerry Mormann", "phone": "(805) 849-4912", "email": "kerrym@bhhscal.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/ventura-county-california-farms-and-ranches-for-sale/pid/423749464", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 6850000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "", "title": "5 Springs Cattle and Hay Ranch", "acres": 1446.0, "ptype": "ranch", "brokerage": "California Outdoor Properties", "agent_name": "Donna Utterback", "phone": "(530) 336-6869", "email": "cengs@caoutdoorproperties.com", "broker_url": "", "all_sources": "landbrokermls+landwatch", "seller_name": "WATERLAND VINEYARDS RAMPAGE LLC", "seller_mail": "PO Box 5379 Fresno CA 937555379", "seller_llc": true, "seller_conf": "MED", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landbrokermls", "url": "https://www.landbrokermls.com/property/1230657/5-springs-cattle-and-hay-ranch", "nsrc": 3, "days_new": 0, "days_removed": null}, {"score": 60, "price": 5995000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Ventura", "title": "Ventura County Strawberry Farmland", "acres": 59.0, "ptype": "ranch", "brokerage": "Jacobson Realty, Inc.", "agent_name": "Lynn J Osslund", "phone": "(805) 321-1617", "email": "jacobsonrealtyinc@gmail.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/ventura-county-california-farms-and-ranches-for-sale/pid/425589222", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 5900000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "El Dorado", "title": "Heart Rock Ranch", "acres": 381.43, "ptype": "ranch", "brokerage": "California Outdoor Properties", "agent_name": "Todd Renfrew", "phone": "(530) 450-3728", "email": "todd@caoutdoorproperties.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/el-dorado-county-california-farms-and-ranches-for-sale/pid/423346013", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 5297500, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Fresno", "title": "529.75 Acs. Burford-San Joaquin Ranch", "acres": 529.75, "ptype": "ranch", "brokerage": "Pearson Realty", "agent_name": "Ryan O'Rourke", "phone": "(559) 414-8430", "email": "rorourke@pearsonrealty.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "brokerage", "crm_name": "Sullivan Groesz", "crm_email": "sgrosz@pearsonrealty.com  - sgrosz@pearsonrealty.com", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/fresno-county-california-farms-and-ranches-for-sale/pid/420542157", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 3700000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Tulare", "title": "+/-345.93 Ac. Open Ground", "acres": 345.93, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Jonathan Verhoeven", "phone": "(559) 758-8007", "email": "jonathan@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "FARIA FAMILY I LTD PARTNERSHIP", "seller_mail": "PO BOX 1137 TIPTON CA 932721137", "seller_llc": true, "seller_conf": "HIGH", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/tulare-county-california-farms-and-ranches-for-sale/pid/425902894", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 3309900, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Tulare", "title": "+/-213.54 Ac. Pistachios & Almonds", "acres": 213.54, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Doug Phillips", "phone": "(559) 620-1152", "email": "doug@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "EW MERRITT FARMS", "seller_mail": "11188 ROAD 192 PORTERVILLE CA 932579302", "seller_llc": true, "seller_conf": "HIGH", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/tulare-county-california-farms-and-ranches-for-sale/pid/425255269", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 3280000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "San Joaquin", "title": "80 acre Escalon Almond Orchard", "acres": 80.0, "ptype": "ranch", "brokerage": "PMZ", "agent_name": "Jeff Titus", "phone": "(209) 680-2525", "email": "jtituspmz@gmail.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/san-joaquin-county-california-farms-and-ranches-for-sale/pid/425240359", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2950000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Nevada", "title": "Iconic Horse Property", "acres": 63.34, "ptype": "ranch", "brokerage": "Gold Country Ranches and Realty", "agent_name": "Teresa Dietrich", "phone": "(760) 478-0965", "email": "teresa@goldcountryranches.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/nevada-county-california-farms-and-ranches-for-sale/pid/423143056", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2784340, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Kings", "title": "+/-107.09 Ac. Walnuts, Hanford", "acres": 107.09, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Blake Grilione", "phone": "(559) 400-8202", "email": "blake@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/kings-county-california-farms-and-ranches-for-sale/pid/423328696", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2750000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Fresno", "title": "88.89 Acs. Sanger River Bottom", "acres": 88.89, "ptype": "ranch", "brokerage": "Pearson Realty", "agent_name": "Craig Larson, G.R. I.", "phone": "(559) 344-8313", "email": "clarson@pearsonrealty.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "LIBERTY CHRISTIAN FELLOWSHIP INC", "seller_mail": "PO BOX 6541 FRESNO CA 937036541", "seller_llc": true, "seller_conf": "HIGH", "crm_match": "brokerage", "crm_name": "Sullivan Groesz", "crm_email": "sgrosz@pearsonrealty.com  - sgrosz@pearsonrealty.com", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/fresno-county-california-farms-and-ranches-for-sale/pid/425435367", "nsrc": 2, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2749925, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Stanislaus", "title": "4 Parcels | Almond Orchard | Peaches | Open Land", "acres": 82.0, "ptype": "ranch", "brokerage": "Premier California Properties -Haney and Associates Real Estate", "agent_name": "Marcus Haney", "phone": "(209) 638-7927", "email": "marcus@premiercaproperties.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/stanislaus-county-california-farms-and-ranches-for-sale/pid/424914561", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2600000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Yuba", "title": "165.50 Ac. Wheatland Ranch", "acres": 165.5, "ptype": "ranch", "brokerage": "ELT Ranch Properties, Inc.", "agent_name": "Randy Edwards", "phone": "(530) 994-9775", "email": "randy@eltappraisers.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/yuba-county-california-farms-and-ranches-for-sale/pid/419901054", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2526480, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Fresno", "title": "76.56 Acs. Kerman F.I.D. Vineyard", "acres": 76.56, "ptype": "ranch", "brokerage": "Pearson Realty", "agent_name": "Ryan O'Rourke", "phone": "(209) 670-1586", "email": "rorourke@pearsonrealty.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "BALAKIAN ARA", "seller_mail": "1064 RORDEN AVE SELMA CA 936624604", "seller_llc": false, "seller_conf": "HIGH", "crm_match": "brokerage", "crm_name": "Sullivan Groesz", "crm_email": "sgrosz@pearsonrealty.com  - sgrosz@pearsonrealty.com", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/fresno-county-california-farms-and-ranches-for-sale/pid/426286731", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2275000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Madera", "title": "75.8 Acs. Avenue 8 Vineyard, Home & Shop", "acres": 75.8, "ptype": "ranch", "brokerage": "Pearson Realty", "agent_name": "Cole Petersen", "phone": "(559) 657-5614", "email": "cpetersen@pearsonrealty.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "DOSANJH BALHAR S & AMRITPAL KAUR TRUSTEE", "seller_mail": "1373 LOMA LINDA LN MADERA CA 936389378", "seller_llc": false, "seller_conf": "MED", "crm_match": "brokerage", "crm_name": "Sullivan Groesz", "crm_email": "sgrosz@pearsonrealty.com  - sgrosz@pearsonrealty.com", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/madera-county-california-farms-and-ranches-for-sale/pid/418180506", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2073000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Kings", "title": "+/-138.19 Ac. Open Land, Homes & Shops", "acres": 138.19, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Blake Grilione", "phone": "(559) 337-6917", "email": "blake@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/kings-county-california-farms-and-ranches-for-sale/pid/425836192", "nsrc": 2, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2050000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Tulare", "title": "+/-515.35 Ac. Citrus, Ducor", "acres": 515.35, "ptype": "ranch", "brokerage": "Schuil Ag Real Estate", "agent_name": "Stephen Schuil", "phone": "(559) 242-1881", "email": "stephen@schuil.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/tulare-county-california-farms-and-ranches-for-sale/pid/424358668", "nsrc": 1, "days_new": 0, "days_removed": null}, {"score": 60, "price": 2050000, "status": "UNDER_CONTRACT", "raw_status": "Under Contract", "event_type": "STATE", "state": "CA", "county": "Yolo", "title": "DE PUE WAREHOUSE", "acres": 17.94, "ptype": "ranch", "brokerage": "California Agricultural Properties, Inc.", "agent_name": "Scott Stone", "phone": "(530) 869-6576", "email": "sastone57@gmail.com", "broker_url": "", "all_sources": "landwatch", "seller_name": "", "seller_mail": "", "seller_llc": false, "seller_conf": "", "crm_match": "", "crm_name": "", "crm_email": "", "crm_phone": "", "source": "landwatch", "url": "https://www.landwatch.com/yolo-county-california-farms-and-ranches-for-sale/pid/420973739", "nsrc": 1, "days_new": 0, "days_removed": null}];
+const META = {"generated_at": "2026-06-10 22:42", "run_id": "run_20260610T220005", "total": 398, "band": {">$10M": 51, "$5\u201310M": 82, "$2\u20135M": 228}, "pending": 0, "email": 379, "phone": 395, "crm": 198, "states": ["AR", "AZ", "CA", "CO", "FL", "GA", "IA", "ID", "IL", "KS", "KY", "MO", "MT", "ND", "NE", "NM", "OK", "OR", "SD", "TN", "TX", "UT", "WA", "WY"], "sources": ["afm", "hallhall", "landbrokermls", "landwatch", "nationalland", "peoples", "ranchland", "sullivan"], "min_price": 2000000, "health": "landwatch (3049), nationalland (168), afm (43), whitetail (180), hallhall (883), fayranches (508), landbrokermls (2175), crexi (490), hayden (9), ranchland (65), peoples (40), sullivan (21)", "tracked": 1807};
+const fmtMoney = v => v ? "$" + Number(v).toLocaleString() : "—";
+const scoreCls = s => s>=70?"s-hi":s>=45?"s-md":"s-lo";
+const statusBadge = s => {
+  const m={ACTIVE_UNDER_CONTRACT:["b-auc","Active Under Contract"],PENDING:["b-pending","Pending — contingencies removed"],
+           UNDER_CONTRACT:["b-uc","Under Contract"],"UNDER_CONTRACT?":["b-uc","Disappeared — probable UC"],
+           AUCTION:["b-auction","Upcoming Auction"],SOLD:["b-sold","Sold"]};
+  const x=m[s]||["b-uc",s]; return `<span class="badge ${x[0]}">${x[1]}</span>`;
+};
+let sortK="price", sortDir=-1, filtered=DATA.slice();
+
+function renderHeaderCards(){
+  document.getElementById("sub").innerHTML =
+    `${META.total} under-contract deals ≥ $${(META.min_price/1e6).toFixed(1)}M &nbsp;·&nbsp; run ${META.run_id} &nbsp;·&nbsp; ${META.generated_at}`;
+  const c=document.getElementById("cards");
+  c.innerHTML = [
+    ["gold", META.total, "Deals ≥ $"+(META.min_price/1e6).toFixed(1)+"M"],
+    ["", META.band[">$10M"], "Over $10M"],
+    ["", META.band["$5–10M"], "$5–10M"],
+    ["", META.band["$2–5M"], "$2–5M"],
+    ["pending", META.pending, "Pending (contingencies removed)"],
+    ["green", META.phone, "With phone"],
+    ["green", META.email, "With email"],
+    ["gold", META.crm, "In my CRM"],
+    ...(META.tracked?[["", META.tracked, "Active tracked (disappearance watch)"]]:[]),
+  ].map(([cls,n,l])=>`<div class="card ${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+  const st=document.getElementById("state"); META.states.forEach(s=>st.add(new Option(s,s)));
+  const sr=document.getElementById("source"); META.sources.forEach(s=>sr.add(new Option(s,s)));
+}
+
+function apply(){
+  const q=document.getElementById("q").value.toLowerCase();
+  const st=document.getElementById("state").value;
+  const sr=document.getElementById("source").value;
+  const bd=document.getElementById("band").value;
+  const hc=document.getElementById("hasContact").checked;
+  const cm=document.getElementById("hasCrm").checked;
+  const op=document.getElementById("onlyPending").checked;
+  filtered = DATA.filter(r=>{
+    if(st && r.state!==st) return false;
+    if(sr && r.source!==sr) return false;
+    if(bd && r.price < Number(bd)*1e6) return false;
+    if(hc && !(r.phone||r.email||r.crm_phone||r.crm_email)) return false;
+    if(cm && !r.crm_match) return false;
+    if(op && r.status!=="PENDING") return false;
+    if(q){const hay=(r.title+" "+r.county+" "+r.brokerage+" "+r.agent_name+" "+r.crm_name+" "+r.state).toLowerCase();
+      if(!hay.includes(q)) return false;}
+    return true;
+  });
+  sortRows(); render();
+}
+function sortRows(){
+  filtered.sort((a,b)=>{
+    let x=a[sortK], y=b[sortK];
+    if(typeof x==="string"){x=x.toLowerCase();y=(y||"").toLowerCase(); return x<y?-sortDir:x>y?sortDir:0;}
+    return ((x||0)-(y||0))*sortDir;
+  });
+}
+function render(){
+  document.getElementById("count").textContent = filtered.length+" shown";
+  const tb=document.getElementById("tbody");
+  tb.innerHTML = filtered.map(r=>{
+    const contact = (r.phone||r.email) ?
+      `<div class="contact">${r.agent_name?`<div class="nm">${esc(r.agent_name)}</div>`:""}
+        ${r.phone?`<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}
+        ${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}</div>`
+      : `<span class="nocontact">phone/email not public</span>`;
+    const crm = r.crm_match ?
+      `<div class="contact"><div class="nm">${esc(r.crm_name)} ${r.crm_match==="agent"?'<span class="pill" title="This IS the listing agent — matched by name">listing agent</span>':'<span class="pill" title="Your relationship at this brokerage — not necessarily the listing agent">@ brokerage</span>'}</div>
+        ${r.crm_phone?`<a href="tel:${esc(r.crm_phone)}">${esc(r.crm_phone)}</a>`:""}
+        ${r.crm_email?`<a href="mailto:${esc(r.crm_email)}">${esc(r.crm_email)}</a>`:""}</div>`
+      : `<span class="nocontact">—</span>`;
+    // age coloring: NEW = white bar for the first 3 days; REMOVED = maroon-red at day 0
+    // decaying to black by day 45 (the seller's 1031 identification deadline).
+    let bar="", ageTag="";
+    if(r.status==="UNDER_CONTRACT?" && r.days_removed!=null){
+      const t=Math.max(0,Math.min(1,r.days_removed/45));
+      // day 0 (just closed/removed) = black; ramps to bright red by day 45 (the 1031 deadline)
+      const c=`rgb(${Math.round(25+205*t)},${Math.round(12*t)},${Math.round(12*t)})`;
+      bar=`box-shadow:inset 6px 0 0 ${c}`;
+      const left=45-r.days_removed;
+      ageTag=`<div class="agetag" style="color:${t<0.2?'#888':c}">Day ${r.days_removed} · ${left>0?left+' to 1031 deadline':'DEADLINE PASSED'}</div>`;
+    } else if(r.days_new!=null && r.days_new<=3){
+      bar="box-shadow:inset 6px 0 0 #ffffff";
+      ageTag=`<div class="agetag" style="color:#fff">NEW${r.days_new>0?' · '+r.days_new+'d':''}</div>`;
+    }
+    const seller = r.seller_name ?
+      `<div class="contact"><div class="nm">${esc(r.seller_name)} ${r.seller_llc?'<span class="pill" title="LLC/entity owner — pierce to manager via Sec of State">LLC</span>':''} <span class="pill" title="Match confidence from county+acreage against your landowner DB">${esc(r.seller_conf)}</span></div>
+        ${r.seller_mail?`<div style="font-size:12px;color:var(--mute)">${esc(r.seller_mail)}</div>`:""}</div>`
+      : `<span class="nocontact">—</span>`;
+    return `<tr class="${r.status==='PENDING'?'is-pending':''}">
+      <td class="price" style="${bar}">${fmtMoney(r.price)}</td>
+      <td>${statusBadge(r.status)}${ageTag}</td>
+      <td>${esc(r.state)}</td>
+      <td>${esc(r.county)}</td>
+      <td class="prop">${esc(r.title)}<div class="meta">${r.ptype?esc(r.ptype):""}${r.nsrc>1?` · <span class="pill">${r.nsrc} sources</span>`:""}</div></td>
+      <td class="price">${r.acres?Number(r.acres).toLocaleString():"—"}</td>
+      <td>${esc(r.brokerage)||"—"}${r.broker_url?` <a href="${esc(r.broker_url)}" target="_blank">↗</a>`:""}</td>
+      <td>${contact}</td>
+      <td>${crm}</td>
+      <td>${seller}</td>
+      <td>${esc(r.all_sources||r.source)}</td>
+      <td>${r.url?`<a href="${esc(r.url)}" target="_blank">view</a>`:"—"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="13" style="padding:24px;color:var(--mute)">No deals match these filters.</td></tr>`;
+}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+document.querySelectorAll("th[data-k]").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    if(sortK===k) sortDir*=-1; else {sortK=k; sortDir = (k==="title"||k==="county"||k==="state"||k==="brokerage"||k==="source")?1:-1;}
+    document.querySelectorAll("th .arrow").forEach(a=>a.textContent="");
+    th.querySelector(".arrow").textContent = sortDir>0?"▲":"▼";
+    sortRows(); render();
+  });
+});
+["q","state","source","band","hasContact","hasCrm","onlyPending"].forEach(id=>
+  document.getElementById(id).addEventListener("input",apply));
+
+renderHeaderCards(); apply();
+</script>
+</body>
+</html>
